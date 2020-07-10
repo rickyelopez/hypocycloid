@@ -38,7 +38,7 @@ import math
 import sys
 from getopt import getopt, GetoptError
 import ezdxf
-
+from datetime import datetime 
 
 def usage():
     """
@@ -124,19 +124,12 @@ def checkLimit(x, y, maxrad, minrad, offset):
         x, y = toRect(r, a)
     return x, y
 
-
-p = 0.00
-d = 0.00
-e = 0.00
-n = 0.00
-s = 0.00
+p = d = e = n = s = c = x = y = 0.00
 b = -1.00
-f = "output.dxf"
 ang = 50.0
-c = 0.00
-x = 0.00
-y = 0.00
 i = 0
+
+f = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".dxf"
 
 try:
     opts, args = getopt([x.lower() for x in sys.argv[1:]], "p:b:d:e:n:a:c:s:f:h")
