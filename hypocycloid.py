@@ -139,13 +139,14 @@ y = 0.00
 i = 0
 
 try:
-    opts, args = getopt(sys.argv[1:], "p:b:d:e:n:a:c:s:f:h")
+    opts, args = getopt([x.lower() for x in sys.argv[1:]], "p:b:d:e:n:a:c:s:f:h")
 except GetoptError as err:
     print(str(err))
     usage()
     sys.exit(2)
 
 try:
+    print(opts, args, sep="\n")
     for o, a in opts:
         if o in ("-p", "-P"):
             p = float(a)
