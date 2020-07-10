@@ -131,7 +131,7 @@ e = 0.00
 n = 0.00
 s = 0.00
 b = -1.00
-f = "xxx"
+f = "output.dxf"
 ang = 50.0
 c = 0.00
 x = 0.00
@@ -266,7 +266,7 @@ msp.add_circle((0, 0), d / 2, dxfattribs={"layer": "roller"})
 
 
 try:
-    doc.saveas("test.dxf")
+    doc.saveas(f)
 except:
     print("Problem saving file")
     sys.exit(2)
