@@ -38,7 +38,9 @@ import math
 import sys
 from getopt import getopt, GetoptError
 import ezdxf
-from datetime import datetime 
+from datetime import datetime
+from argparse import ArgumentParser
+
 
 def usage():
     """
@@ -124,54 +126,106 @@ def checkLimit(x, y, maxrad, minrad, offset):
         x, y = toRect(r, a)
     return x, y
 
-p = d = e = n = s = c = x = y = 0.00
-b = -1.00
-ang = 50.0
-i = 0
 
 f = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".dxf"
+parser = ArgumentParser(description="Hypocycloidal Gear Profile Generator")
 
-try:
-    opts, args = getopt([x.lower() for x in sys.argv[1:]], "p:b:d:e:n:a:c:s:f:h")
-except GetoptError as err:
-    print(str(err))
-    usage()
-    sys.exit(2)
+group_req = parser.add_argument_group(title="required named arguments")
+group_p_b = group_req.add_mutually_exclusive_group(required=True)
 
-try:
-    print(opts, args, sep="\n")
-    for o, a in opts:
-        if o in ("-p", "-P"):
-            p = float(a)
-        elif o in ("-b", "-B"):
-            b = float(a)
-        elif o in ("-d", "-D"):
-            d = float(a)
-        elif o in ("-e", "-E"):
-            e = float(a)
-        elif o in ("-n", "-N"):
-            n = int(a)
-        elif o in ("-s", "-S"):
-            s = int(a)
-        elif o in ("-a", "-A"):
-            ang = float(a)
-        elif o in ("-c", "-C"):
-            c = float(a)
-        elif o in ("-f", "-F"):
-            f = a
-        elif o in ("-h", "-H"):
-            usage()
-            sys.exit(0)
-        else:
-            assert False, "unhandled option"
-            sys.exit(2)
-except:
-    usage()
-    sys.exit(2)
+group_p_b.add_argument(
+    "-p",
+    "--pitch",
+    type=float,
+    help="the pitch of the cam (can be used instead of -b/--bolt_circ_diam)",
+    metavar="pitch",
+)
+group_p_b.add_argument(
+    "-b",
+    "--bolt_circ_diam",
+    type=float,
+    help="the bolt circle diameter of the pins (can be used instead of -p/--pitch)",
+    metavar="bolt circle diameter",
+)
 
+group_req.add_argument(
+    "-d",
+    "--pin_diam",
+    type=float,
+    help="the diameter of the pins",
+    metavar="pin diameter",
+    required=True,
+)
 
-# if -o was specifed, calculate the tooth pitch for use in cam generation
-if b > 0:
+group_req.add_argument(
+    "-e",
+    "--eccentricity",
+    type=float,
+    help="center of rotation offset from center of cam",
+    metavar="eccentricity",
+    required=True,
+)
+
+group_req.add_argument(
+    "-a",
+    "--pressure_angle",
+    type=float,
+    help="pressure angle limit",
+    metavar="pressure angle",
+    required=True,
+    default=50,
+)
+
+group_req.add_argument(
+    "-c",
+    "--pressure_offset",
+    type=float,
+    help="pressure angle offset",
+    metavar="pressure angle offset",
+    required=True,
+)
+
+group_req.add_argument(
+    "-n",
+    "--num_teeth",
+    type=int,
+    help="number of teeth on the cam, also chooses reduction (i.e. 10 teeth = 10:1 reduction)",
+    metavar="number of teeth",
+    required=True,
+)
+
+parser.add_argument(
+    "-s",
+    "--num_lines",
+    type=int,
+    help="number of line segments used to represent curves in dxf (more is better, but will impact CAD software performance) (default=500)",
+    metavar="number of lines",
+    default=500,
+)
+
+parser.add_argument(
+    "-f",
+    "--file_name",
+    type=str,
+    help="output file name (default is 'date_time.dxf')",
+    metavar="file name",
+    default=datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".dxf",
+)
+
+args = vars(parser.parse_args(x.lower() for x in sys.argv[1:]))
+
+p = args["pitch"]
+b = args["bolt_circ_diam"]
+d = args["pin_diam"]
+e = args["eccentricity"]
+n = args["num_teeth"]
+s = args["num_lines"]
+ang = args["pressure_angle"]
+c = args["pressure_offset"]
+f = args["file_name"]
+
+# if -b was specifed, calculate the tooth pitch for use in cam generation
+if b:
     p = b / n
 
 q = 2 * math.pi / float(s)
@@ -234,7 +288,7 @@ maxRadius = calcPressureLimit(p, d, e, n, max_angle * math.pi / 180)
 msp.add_circle((-e, 0), minRadius, dxfattribs={"layer": "pressure"})
 msp.add_circle((-e, 0), maxRadius, dxfattribs={"layer": "pressure"})
 
-# generate the cam profile - note: shifted in -x by eccentricicy amount
+# generate the cam profile - note: shifted in -x by eccentricity amount
 i = 0
 x1 = calcX(p, d, e, n, q * i)
 y1 = calcY(p, d, e, n, q * i)
