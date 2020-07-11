@@ -42,29 +42,6 @@ from datetime import datetime
 from argparse import ArgumentParser
 
 
-def usage():
-    """
-    Print command line arguments
-    """
-
-    print("Useage:")
-    print("-p = Tooth Pitch              (float)")
-    print("-b = Pin bolt circle diameter (float)")
-    print("     -b overrides -p")
-    print("-d = Roller Diameter          (float)")
-    print("-e = Eccentricity             (float)")
-    print("-a = Pressure angle limit     (float)")
-    print("-c = offset in pressure angle (float)")
-    print("-n = Number of Teeth in Cam   (integer)")
-    print("-s = Line segements in dxf    (integer)")
-    print("-f = output filename          (string)")
-    print("-h = this help")
-    print(
-        "\nExample: hypocycloid.py -p 0.08 -d 0.15\
-            -e 0.05 -a 50.0 -c 0.01 -n 10 -s 400 -f foo.dxf"
-    )
-
-
 def toPolar(x, y):
     """ Convert input coords to polar coordinate system """
     return (x ** 2 + y ** 2) ** 0.5, math.atan2(y, x)
@@ -127,12 +104,15 @@ def checkLimit(x, y, maxrad, minrad, offset):
     return x, y
 
 
-f = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".dxf"
+# create argument parser object
 parser = ArgumentParser(description="Hypocycloidal Gear Profile Generator")
 
+# create group for required named arguments
 group_req = parser.add_argument_group(title="required named arguments")
+# add mutually exclusive group to the above group
 group_p_b = group_req.add_mutually_exclusive_group(required=True)
 
+# add the pitch arg to the mutually exclusive group
 group_p_b.add_argument(
     "-p",
     "--pitch",
@@ -140,6 +120,8 @@ group_p_b.add_argument(
     help="the pitch of the cam (can be used instead of -b/--bolt_circ_diam)",
     metavar="pitch",
 )
+
+# add the bolt circle diameter argument to the mutually exclusive group
 group_p_b.add_argument(
     "-b",
     "--bolt_circ_diam",
@@ -148,6 +130,7 @@ group_p_b.add_argument(
     metavar="bolt circle diameter",
 )
 
+# add the pin diameter argument to the named group
 group_req.add_argument(
     "-d",
     "--pin_diam",
@@ -157,6 +140,7 @@ group_req.add_argument(
     required=True,
 )
 
+# add the eccentricity argument to the named group
 group_req.add_argument(
     "-e",
     "--eccentricity",
@@ -166,6 +150,7 @@ group_req.add_argument(
     required=True,
 )
 
+# add the pressure angle argument to the named group
 group_req.add_argument(
     "-a",
     "--pressure_angle",
@@ -176,6 +161,7 @@ group_req.add_argument(
     default=50,
 )
 
+# add the pressure angle offset argument to the named group
 group_req.add_argument(
     "-c",
     "--pressure_offset",
@@ -185,6 +171,7 @@ group_req.add_argument(
     required=True,
 )
 
+# add the number of teeth argument to the named group
 group_req.add_argument(
     "-n",
     "--num_teeth",
@@ -194,6 +181,7 @@ group_req.add_argument(
     required=True,
 )
 
+# add the dxf resolution to the optional group
 parser.add_argument(
     "-s",
     "--num_lines",
@@ -203,6 +191,7 @@ parser.add_argument(
     default=500,
 )
 
+# add the filename argument to the optional group
 parser.add_argument(
     "-f",
     "--file_name",
@@ -212,22 +201,22 @@ parser.add_argument(
     default=datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".dxf",
 )
 
+# parse commandline arguments using the arg parser defined above and convert the result into a dict
 args = vars(parser.parse_args(x.lower() for x in sys.argv[1:]))
 
-p = args["pitch"]
+# extract the args into individual vars
+# TODO: restructure so that this isn't necessary
 b = args["bolt_circ_diam"]
+n = args["num_teeth"]
+p = args["pitch"] if not args["pitch"] is None else b / n
 d = args["pin_diam"]
 e = args["eccentricity"]
-n = args["num_teeth"]
 s = args["num_lines"]
 ang = args["pressure_angle"]
 c = args["pressure_offset"]
 f = args["file_name"]
 
-# if -b was specifed, calculate the tooth pitch for use in cam generation
-if b:
-    p = b / n
-
+# don't know what this is
 q = 2 * math.pi / float(s)
 
 
