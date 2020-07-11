@@ -151,7 +151,7 @@ group_req.add_argument(
 )
 
 # add the pressure angle argument to the named group
-group_req.add_argument(
+parser.add_argument(
     "-a",
     "--pressure_angle",
     type=float,
