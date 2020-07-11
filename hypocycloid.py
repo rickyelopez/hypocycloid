@@ -36,73 +36,10 @@ Notes:
 
 import math
 import sys
-from getopt import getopt, GetoptError
-import ezdxf
 from datetime import datetime
 from argparse import ArgumentParser
-
-
-def toPolar(x, y):
-    """ Convert input coords to polar coordinate system """
-    return (x ** 2 + y ** 2) ** 0.5, math.atan2(y, x)
-
-
-def toRect(r, a):
-    """ Convert input coords to rectangular coordinate system """
-    return r * math.cos(a), r * math.sin(a)
-
-
-def calcyp(a, e, n):
-    """ tbd """
-    return math.atan(math.sin(n * a) / (math.cos(n * a) + (n * p) / (e * (n + 1))))
-
-
-def calcX(p, d, e, n, a):
-    """ tbd """
-    return (
-        (n * p) * math.cos(a)
-        + e * math.cos((n + 1) * a)
-        - d / 2 * math.cos(calcyp(a, e, n) + a)
-    )
-
-
-def calcY(p, d, e, n, a):
-    """ tbd """
-    return (
-        (n * p) * math.sin(a)
-        + e * math.sin((n + 1) * a)
-        - d / 2 * math.sin(calcyp(a, e, n) + a)
-    )
-
-
-def calcPressureAngle(p, d, n, a):
-    """ Calculate Pressure Angle from parameters"""
-    ex = 2 ** 0.5
-    r3 = p * n
-    rg = r3 / ex
-    pp = rg * (ex ** 2 + 1 - 2 * ex * math.cos(a)) ** 0.5 - d / 2
-    return math.asin((r3 * math.cos(a) - rg) / (pp + d / 2)) * 180 / math.pi
-
-
-def calcPressureLimit(p, d, e, n, a):
-    """ Calculate Pressure Angle Limit from parameters"""
-    ex = 2 ** 0.5
-    r3 = p * n
-    rg = r3 / ex
-    q = (r3 ** 2 + rg ** 2 - 2 * r3 * rg * math.cos(a)) ** 0.5
-    x = rg - e + (q - d / 2) * (r3 * math.cos(a) - rg) / q
-    y = (q - d / 2) * r3 * math.sin(a) / q
-    return (x ** 2 + y ** 2) ** 0.5
-
-
-def checkLimit(x, y, maxrad, minrad, offset):
-    """ tbd """
-    r, a = toPolar(x, y)
-    if (r > maxrad) or (r < minrad):
-        r = r - offset
-        x, y = toRect(r, a)
-    return x, y
-
+import ezdxf
+from modules.profile import HypProfile
 
 # create argument parser object
 parser = ArgumentParser(description="Hypocycloidal Gear Profile Generator")
@@ -186,7 +123,8 @@ parser.add_argument(
     "-s",
     "--num_lines",
     type=int,
-    help="number of line segments used to represent curves in dxf (more is better, but will impact CAD software performance) (default=500)",
+    help="number of line segments used to represent curves in dxf \
+        (more is better, but might impact CAD software performance) (default=500)",
     metavar="number of lines",
     default=500,
 )
@@ -203,22 +141,7 @@ parser.add_argument(
 
 # parse commandline arguments using the arg parser defined above and convert the result into a dict
 args = vars(parser.parse_args(x.lower() for x in sys.argv[1:]))
-
-# extract the args into individual vars
-# TODO: restructure so that this isn't necessary
-b = args["bolt_circ_diam"]
-n = args["num_teeth"]
-p = args["pitch"] if not args["pitch"] is None else b / n
-d = args["pin_diam"]
-e = args["eccentricity"]
-s = args["num_lines"]
-ang = args["pressure_angle"]
-c = args["pressure_offset"]
-f = args["file_name"]
-
-# don't know what this is
-q = 2 * math.pi / float(s)
-
+prof = HypProfile(args)
 
 doc = ezdxf.new()
 doc.layers.new("text", dxfattribs={"color": 2})
@@ -228,82 +151,96 @@ doc.layers.new("pressure", dxfattribs={"color": 3})
 
 msp = doc.modelspace()
 
-
-msp.add_text(f"pitch={str(p)}", dxfattribs={"layer": "text", "height": 0.1}).set_pos(
-    (p * n + d, 0.7)
-)
+x_pos = prof.pitch * prof.num_teeth + prof.pin_diam
 
 msp.add_text(
-    f"pin diameter={str(d)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((p * n + d, 0.5))
+    f"pitch={str(prof.pitch)}", dxfattribs={"layer": "text", "height": 0.1}
+).set_pos((x_pos, 0.7))
 
 msp.add_text(
-    f"eccentricity={str(e)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((p * n + d, 0.3))
+    f"pin diameter={str(prof.pin_diam)}", dxfattribs={"layer": "text", "height": 0.1}
+).set_pos((x_pos, 0.5))
 
 msp.add_text(
-    f"# of teeth={str(n)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((p * n + d, 0.1))
+    f"eccentricity={str(prof.eccentricity)}",
+    dxfattribs={"layer": "text", "height": 0.1},
+).set_pos((x_pos, 0.3))
 
 msp.add_text(
-    f"pressure angle limit={str(ang)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((p * n + d, -0.1))
+    f"# of teeth={str(prof.num_teeth)}", dxfattribs={"layer": "text", "height": 0.1}
+).set_pos((x_pos, 0.1))
 
 msp.add_text(
-    f"pressure angle offset={str(c)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((p * n + d, -0.3))
+    f"pressure angle limit={str(prof.press_ang)}",
+    dxfattribs={"layer": "text", "height": 0.1},
+).set_pos((x_pos, -0.1))
 
-min_angle = -1.0
-max_angle = -1.0
+msp.add_text(
+    f"pressure angle offset={str(prof.press_offset)}",
+    dxfattribs={"layer": "text", "height": 0.1},
+).set_pos((x_pos, -0.3))
+
 
 for i in range(180):
-    x = calcPressureAngle(p, d, n, float(i) * math.pi / 180)
-    if (x < ang) and (min_angle < 0):
-        min_angle = float(i)
-    if (x < -ang) and (max_angle < 0):
+    x = prof.calc_pressure_angle(float(i) * math.pi / 180)
+    if (x < prof.press_ang) and (prof.min_angle < 0):
+        prof.min_angle = float(i)
+    if (x < -prof.press_ang) and (prof.max_angle < 0):
         max_angle = float(i - 1)
 
 msp.add_text(
-    f"min angle={str(min_angle)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((p * n + d, -0.5))
+    f"min angle={str(prof.min_angle)}", dxfattribs={"layer": "text", "height": 0.1}
+).set_pos((x_pos, -0.5))
 
 msp.add_text(
-    f"max angle={str(max_angle)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((p * n + d, -0.7))
+    f"max angle={str(prof.max_angle)}", dxfattribs={"layer": "text", "height": 0.1}
+).set_pos((x_pos, -0.7))
 
-minRadius = calcPressureLimit(p, d, e, n, min_angle * math.pi / 180)
-maxRadius = calcPressureLimit(p, d, e, n, max_angle * math.pi / 180)
+prof.calc_radii()
 
-msp.add_circle((-e, 0), minRadius, dxfattribs={"layer": "pressure"})
-msp.add_circle((-e, 0), maxRadius, dxfattribs={"layer": "pressure"})
+msp.add_circle(
+    (-prof.eccentricity, 0), prof.min_radius, dxfattribs={"layer": "pressure"}
+)
+msp.add_circle(
+    (-prof.eccentricity, 0), prof.max_radius, dxfattribs={"layer": "pressure"}
+)
 
 # generate the cam profile - note: shifted in -x by eccentricity amount
 i = 0
-x1 = calcX(p, d, e, n, q * i)
-y1 = calcY(p, d, e, n, q * i)
-x1, y1 = checkLimit(x1, y1, maxRadius, minRadius, c)
-for i in range(0, s):
-    x2 = calcX(p, d, e, n, q * (i + 1))
-    y2 = calcY(p, d, e, n, q * (i + 1))
-    x2, y2 = checkLimit(x2, y2, maxRadius, minRadius, c)
-    msp.add_line((x1 - e, y1), (x2 - e, y2), dxfattribs={"layer": "cam"})
+x1 = prof.calc(0, "x")
+y1 = prof.calc(0, "y")
+x1, y1 = prof.check_limit(x1, y1)
+for i in range(1, prof.segments + 1):
+    x2 = prof.calc(prof.q * i, "x")
+    y2 = prof.calc(prof.q * i, "y")
+    x2, y2 = prof.check_limit(x2, y2)
+    msp.add_line(
+        (x1 - prof.eccentricity, y1),
+        (x2 - prof.eccentricity, y2),
+        dxfattribs={"layer": "cam"},
+    )
     x1 = x2
     y1 = y2
 
 # add a circle in the center of the cam
-msp.add_circle((-e, 0), d / 2, dxfattribs={"layer": "cam"})
+msp.add_circle((-prof.eccentricity, 0), prof.pin_diam / 2, dxfattribs={"layer": "cam"})
 
 # generate the pin locations
-for i in range(0, n + 1):
-    x = p * n * math.cos(2 * math.pi / (n + 1) * i)
-    y = p * n * math.sin(2 * math.pi / (n + 1) * i)
-    msp.add_circle((x, y), d / 2, dxfattribs={"layer": "roller"})
+for i in range(0, prof.num_teeth + 1):
+    p = (
+        lambda func: prof.pitch
+        * prof.num_teeth
+        * func(2 * math.pi / (prof.num_teeth + 1) * i)
+    )
+    msp.add_circle(
+        (p(math.cos), p(math.sin)), prof.pin_diam / 2, dxfattribs={"layer": "roller"}
+    )
 # add a circle in the center of the pins
-msp.add_circle((0, 0), d / 2, dxfattribs={"layer": "roller"})
+msp.add_circle((0, 0), prof.pin_diam / 2, dxfattribs={"layer": "roller"})
 
 
 try:
-    doc.saveas(f)
+    doc.saveas(prof.file_name)
 except:
     print("Problem saving file")
     sys.exit(2)
