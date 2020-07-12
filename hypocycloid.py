@@ -57,6 +57,10 @@ prof = HypProfile(args)
 # create the dxf document and modelspace
 doc, msp = init_dxf()
 
+##### Find the min and max angle that define the non-relief region of the cam profile   #####
+##### any points outside of this min and max will be offset, and form the relief        #####
+##### region of the cam profile                                                        #####
+
 # find the minimum angle
 i = 0
 while True:
@@ -75,14 +79,15 @@ while True:
         break
     i -= prof.resolution
 
-# calculate the min and max radii
+##### calculate the min and max radii that define the cutoff for the relief region      #####
+##### all of the points within these radii are unrelieved                               #####
 prof.calc_radii()
 
 # generate the cam profile - note: shifted in -x by eccentricity amount
 x1 = prof.calc(0, "x")
 y1 = prof.calc(0, "y")
 x1, y1 = prof.check_limit(x1, y1)
-for i in range(1, prof.segments + 1):
+for i in range(1, prof.segments):
     x2 = prof.calc(prof.quadrant_frac * i, "x")
     y2 = prof.calc(prof.quadrant_frac * i, "y")
     x2, y2 = prof.check_limit(x2, y2)
@@ -95,13 +100,15 @@ for i in range(1, prof.segments + 1):
     y1 = y2
 
 # generate the pin locations
+p = (
+    lambda func, i: prof.pitch
+    * prof.num_teeth
+    * func(2 * pi / (prof.num_teeth + 1) * i)
+)
 for i in range(0, prof.num_teeth + 1):
-    p = (
-        lambda func: prof.pitch
-        * prof.num_teeth
-        * func(2 * pi / (prof.num_teeth + 1) * i)
+    msp.add_circle(
+        (p(cos, i), p(sin, i)), prof.pin_diam / 2, dxfattribs={"layer": "roller"}
     )
-    msp.add_circle((p(cos), p(sin)), prof.pin_diam / 2, dxfattribs={"layer": "roller"})
 
 
 ##### Generate and save the DXF file #####
