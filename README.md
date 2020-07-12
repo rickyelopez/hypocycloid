@@ -30,6 +30,8 @@ The following commandline arguments exist:
   - `-s/--num_lines`: Line segments in dxf 
    - Number of line segments to use to represent the paths
    (more is better, but will impact cad performance)
+  - `-r/--resolution`: Step size used to find angle limits (smaller is better but might slow 
+    down script execution) (default=0.15)
   - `-f/--file_name`: Output file name
     - File name to save profile as, defaults to "output.txt" if not set
   - `-h/--help`: Prints help info
