@@ -34,17 +34,18 @@ Notes:
         - Has not been tested with negative values, may have interesting results :)
 """
 
-from math import cos, sin, pi
+from math import cos, sin, pi, floor, sqrt
 import sys
 
 from modules.profile import HypProfile  # pylint: disable=import-error
 from modules.args import create_argparse  # pylint: disable=import-error
-from modules.dxf import ( # pylint: disable=import-error
+from modules.dxf import (  # pylint: disable=import-error
     init_dxf,
     create_text,
     create_min_max,
     create_centers,
 )
+from modules.arcs import arc_3_point  # pylint: disable=import-error
 
 
 # create the argument parser object populated with all of the arguments we need
@@ -57,43 +58,100 @@ prof = HypProfile(args)
 # create the dxf document and modelspace
 doc, msp = init_dxf()
 
-# find the minimum and maximum angles
-for i in range(180):
-    x = prof.calc_pressure_angle(float(i) * pi / 180)
-    if (x < prof.press_ang) and (prof.min_angle < 0):
-        prof.min_angle = float(i)
-    if (x < -prof.press_ang) and (prof.max_angle < 0):
-        prof.max_angle = float(i - 1)
+##### Find the min and max angle that define the non-relief region of the cam profile   #####
+##### any points outside of this min and max will be offset, and form the relief        #####
+##### region of the cam profile                                                        #####
 
-# calculate the min and max radii
+# find the minimum angle
+i = 0
+while True:
+    x = prof.calc_pressure_angle(i * pi / 180)
+    if x < prof.press_ang:
+        prof.min_angle = round(i, 4)
+        break
+    i += prof.resolution
+
+# find the maximum angle
+i = 180
+while True:
+    x = prof.calc_pressure_angle(i * pi / 180)
+    if x > -prof.press_ang:
+        prof.max_angle = round(i, 4)
+        break
+    i -= prof.resolution
+
+# calculate the min and max radii that define the cutoff for the relief region
+# all of the points within these radii are unrelieved
 prof.calc_radii()
 
 # generate the cam profile - note: shifted in -x by eccentricity amount
-i = 0
+# calculate the first point
 x1 = prof.calc(0, "x")
 y1 = prof.calc(0, "y")
-x1, y1 = prof.check_limit(x1, y1)
-for i in range(1, prof.segments + 1):
-    x2 = prof.calc(prof.q * i, "x")
-    y2 = prof.calc(prof.q * i, "y")
-    x2, y2 = prof.check_limit(x2, y2)
-    msp.add_line(
-        (x1 - prof.eccentricity, y1),
-        (x2 - prof.eccentricity, y2),
-        dxfattribs={"layer": "cam"},
-    )
+# check (and store) if this point needs an offset applied to it
+x1, y1, mod_last = prof.check_limit(x1, y1)
+# keep track of all the points so we can draw arcs
+points = [(x1, y1)]
+# keep track of all of the boundary points of the relief region
+mod_locs = []
+
+for i in range(1, prof.segments):
+    # calculate another point, same as for first point
+    x2 = prof.calc(prof.quadrant_frac * i, "x")
+    y2 = prof.calc(prof.quadrant_frac * i, "y")
+    x2, y2, mod = prof.check_limit(x2, y2)
+    if not mod or mod and not mod_last:
+        # only draw the lines if they do not represent part of an arc
+        msp.add_line(
+            (x1 - prof.eccentricity, y1),
+            (x2 - prof.eccentricity, y2),
+            dxfattribs={"layer": "cam"},
+        )
+
+    # check if the point is a boundary point, store it if it is
+    if mod and not mod_last:
+        mod_last = True
+        mod_locs.append([x2 - prof.eccentricity, y2])
+    elif not mod and mod_last:
+        mod_last = False
+        mod_locs.append([x1 - prof.eccentricity, y1])
+    # store the point
+    points.append([x2 - prof.eccentricity, y2])
+    # get ready for next calc
     x1 = x2
     y1 = y2
 
+# draw the first arc since the first point is at the center
+center, radius, angs = arc_3_point(mod_locs[-1], points[1], mod_locs[0])
+msp.add_arc(center, radius, angs[0], angs[1], dxfattribs={"layer":"cam"})
+# delete the first arc trigger points from the list
+mod_locs = mod_locs[1:-1]
+
+# find and draw the rest of the arcs
+for i in range(0, len(mod_locs), 2):
+    # find a point somewhere close to the center of the arc
+    p_2 = points[floor((points.index(mod_locs[i]) + points.index(mod_locs[i+1]))/2)]
+    # calculate the center, radius, and start/end angles of the arc
+    center, radius, angs = arc_3_point(mod_locs[i], p_2, mod_locs[i+1])
+    # calculate the distance from the center of the cam to the center of the arc
+    cent_dist = sqrt((center[0] + prof.eccentricity)**2 + center[1]**2)
+    # use the center distance to determine which arcs are valleys
+    if cent_dist > prof.max_radius:
+        # reverse the draw order of the valleys
+        angs.reverse()
+
+    # draw the arc
+    msp.add_arc(center, radius, angs[0], angs[1], dxfattribs={"layer":"cam"})
+
 # generate the pin locations
+p = (
+    lambda func, i: prof.pitch
+    * prof.num_teeth
+    * func(2 * pi / (prof.num_teeth + 1) * i)
+)
 for i in range(0, prof.num_teeth + 1):
-    p = (
-        lambda func: prof.pitch
-        * prof.num_teeth
-        * func(2 * pi / (prof.num_teeth + 1) * i)
-    )
     msp.add_circle(
-        (p(cos), p(sin)), prof.pin_diam / 2, dxfattribs={"layer": "roller"}
+        (p(cos, i), p(sin, i)), prof.pin_diam / 2, dxfattribs={"layer": "roller"}
     )
 
 
@@ -109,6 +167,6 @@ create_centers(msp, prof)
 
 try:
     doc.saveas(prof.file_name)
-except: #TODO: except something specific here
+except:  # TODO: except something specific here
     print("Problem saving file")
     sys.exit(2)

@@ -4,6 +4,7 @@
 from argparse import ArgumentParser
 from datetime import datetime
 
+
 def create_argparse():
     """ Create the arguments for this script """
     # create argument parser object
@@ -92,6 +93,17 @@ def create_argparse():
             (more is better, but might impact CAD software performance) (default=500)",
         metavar="number of lines",
         default=500,
+    )
+
+    # add the calculation resolution to the optional group
+    parser.add_argument(
+        "-r",
+        "--resolution",
+        type=float,
+        help="step size used to find angle limits (smaller is better but might slow down script \
+            execution) (default=0.15)",
+        metavar="resolution",
+        default=0.15,
     )
 
     # add the filename argument to the optional group
