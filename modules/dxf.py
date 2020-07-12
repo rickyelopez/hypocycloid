@@ -10,7 +10,7 @@ def init_dxf():
     doc.layers.new("cam", dxfattribs={"color": 1})
     doc.layers.new("roller", dxfattribs={"color": 5})
     doc.layers.new("pressure", dxfattribs={"color": 3})
-
+    doc.layers.new("test", dxfattribs={"color":4})
     return doc, doc.modelspace()
 
 
@@ -19,7 +19,7 @@ def create_text(msp, prof, pos):
     msp.add_text(
         f"pitch={str(prof.pitch)}", dxfattribs={"layer": "text", "height": 0.1}
     ).set_pos((pos, 0.7))
-
+    
     msp.add_text(
         f"pin diameter={str(prof.pin_diam)}",
         dxfattribs={"layer": "text", "height": 0.1},

@@ -67,10 +67,15 @@ class HypProfile:
         self.max_radius = self.calc_pressure_limit(self.max_angle * pi / 180)
 
     def check_limit(self, rect_x, rect_y):
-        """ Apply pressure angle offset to points that fall into the relief region"""
+        """
+        Apply pressure angle offset to points that fall into the relief region
+        return the point values, as well as a bool indicating whether an offset
+        was applied
+        """
+        mod = False
         pol_r, pol_a = sqrt(rect_x ** 2 + rect_y ** 2), atan2(rect_y, rect_x)
         if not self.min_radius <= pol_r <= self.max_radius:
             pol_r = pol_r - self.press_offset
             rect_x, rect_y = pol_r * cos(pol_a), pol_r * sin(pol_a)
-        return rect_x, rect_y
-
+            mod = True
+        return rect_x, rect_y, mod
