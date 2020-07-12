@@ -3,46 +3,44 @@
 """Hypocycloid cam generator
 Generate dxfs of hypocycloid cams for cycloid drives
 
-Copyright 	2009, Alex Lait
-Version 	v0.2 (09/13/09)
-License 	GPL
-Homepage 	http://www.zincland.com/hypocycloid
+Copyright       2009, Alex Lait
+Version         v0.2 (09/13/09)
+License         GPL
+Homepage        http://www.zincland.com/hypocycloid
 
 Python 3 Port:
     https://github.com/rickyelopez
     https://github.com/rickyerlopez/hypocycloid
 
-Credit to:
-	Formulas to describe a hypocycloid cam
-	http://gears.ru/transmis/zaprogramata/2.139.pdf
+Credit to
+        Formulas to describe a hypocycloid cam
+        http://gears.ru/transmis/zaprogramata/2.139.pdf
 
-	Insperational thread on CNCzone
-	http://www.cnczone.com/forums/showthread.php?t=72261
+        Insperational thread on CNCzone
+        http://www.cnczone.com/forums/showthread.php?t=72261
 
-	Documenting and updating the sdxf library
-	http://www.kellbot.com/sdxf-python-library-for-dxf/
+        Documenting and updating the sdxf library
+        http://www.kellbot.com/sdxf-python-library-for-dxf/
 
-	Formulas for calculating the pressure angle and finding the limit circles
-	http://imtuoradea.ro/auo.fmte/files-2007/MECATRONICA_files/Anamaria_Dascalescu_1.pdf
+        Formulas for calculating the pressure angle and finding the limit circles
+        http://imtuoradea.ro/auo.fmte/files-2007/MECATRONICA_files/Anamaria_Dascalescu_1.pdf
 
 Notes:
-	Does not currently do ANY checking for sane input values and it
-	is possible to create un-machinable cams, use at your own risk
+        Does not currently do ANY checking for sane input values and it
+        is possible to create un-machinable cams, use at your own risk
 
-	Suggestions:
-	- Eccentricity should not be more than the roller radius
-	- Has not been tested with negative values, may have interesting results :)
+        Suggestions:
+        - Eccentricity should not be more than the roller radius
+        - Has not been tested with negative values, may have interesting results :)
 """
 
 import math
 import sys
-from argparse import ArgumentParser
-from datetime import datetime
 
 import ezdxf
 
-from modules.profile import HypProfile
-from modules.args import create_argparse
+from modules.profile import HypProfile # pylint: disable=import-error
+from modules.args import create_argparse # pylint: disable=import-error
 
 # create the argument parser object populated with all of the arguments we need
 parser = create_argparse()
