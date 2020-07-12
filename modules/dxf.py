@@ -2,6 +2,7 @@
 
 import ezdxf
 
+
 def init_dxf():
     """ Initialize the document and return the handler """
     doc = ezdxf.new()
@@ -12,6 +13,7 @@ def init_dxf():
 
     return doc, doc.modelspace()
 
+
 def create_text(msp, prof, pos):
     """ Create the text that describes the profile """
     msp.add_text(
@@ -19,7 +21,8 @@ def create_text(msp, prof, pos):
     ).set_pos((pos, 0.7))
 
     msp.add_text(
-        f"pin diameter={str(prof.pin_diam)}", dxfattribs={"layer": "text", "height": 0.1}
+        f"pin diameter={str(prof.pin_diam)}",
+        dxfattribs={"layer": "text", "height": 0.1},
     ).set_pos((pos, 0.5))
 
     msp.add_text(
@@ -49,6 +52,7 @@ def create_text(msp, prof, pos):
         f"max angle={str(prof.max_angle)}", dxfattribs={"layer": "text", "height": 0.1}
     ).set_pos((pos, -0.7))
 
+
 def create_min_max(msp, prof):
     """ Create the circles representing min and max radii"""
     msp.add_circle(
@@ -58,9 +62,12 @@ def create_min_max(msp, prof):
         (-prof.eccentricity, 0), prof.max_radius, dxfattribs={"layer": "pressure"}
     )
 
+
 def create_centers(msp, prof):
     """ Create the circles at the center of the cam and the center of the pins"""
     # add circle in the center of the cam
-    msp.add_circle((-prof.eccentricity, 0), prof.pin_diam / 2, dxfattribs={"layer": "cam"})
+    msp.add_circle(
+        (-prof.eccentricity, 0), prof.pin_diam / 2, dxfattribs={"layer": "cam"}
+    )
     # add circle at the center of the pins
     msp.add_circle((0, 0), prof.pin_diam / 2, dxfattribs={"layer": "roller"})

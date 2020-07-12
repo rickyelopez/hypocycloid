@@ -34,7 +34,7 @@ Notes:
         - Has not been tested with negative values, may have interesting results :)
 """
 
-import math
+from math import cos, sin, pi
 import sys
 
 from modules.profile import HypProfile  # pylint: disable=import-error
@@ -57,8 +57,9 @@ prof = HypProfile(args)
 # create the dxf document and modelspace
 doc, msp = init_dxf()
 
+# find the minimum and maximum angles
 for i in range(180):
-    x = prof.calc_pressure_angle(float(i) * math.pi / 180)
+    x = prof.calc_pressure_angle(float(i) * pi / 180)
     if (x < prof.press_ang) and (prof.min_angle < 0):
         prof.min_angle = float(i)
     if (x < -prof.press_ang) and (prof.max_angle < 0):
@@ -89,12 +90,14 @@ for i in range(0, prof.num_teeth + 1):
     p = (
         lambda func: prof.pitch
         * prof.num_teeth
-        * func(2 * math.pi / (prof.num_teeth + 1) * i)
+        * func(2 * pi / (prof.num_teeth + 1) * i)
     )
     msp.add_circle(
-        (p(math.cos), p(math.sin)), prof.pin_diam / 2, dxfattribs={"layer": "roller"}
+        (p(cos), p(sin)), prof.pin_diam / 2, dxfattribs={"layer": "roller"}
     )
 
+
+##### Generate and save the DXF file #####
 # choose the x position of all the descriptive text
 x_pos = prof.pitch * prof.num_teeth + prof.pin_diam
 # create the descriptive text
@@ -106,6 +109,6 @@ create_centers(msp, prof)
 
 try:
     doc.saveas(prof.file_name)
-except:
+except: #TODO: except something specific here
     print("Problem saving file")
     sys.exit(2)
