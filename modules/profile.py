@@ -7,8 +7,9 @@ from math import atan2, sin, asin, cos, atan, pi, sqrt
 
 class HypProfile:
     """ Object to generate and contain a hypocycloid gear profile """
+
     # pylint: disable=too-many-instance-attributes
-    # Eight is reasonable in this case.
+    # More than 7 is reasonable in this case.
     def __init__(self, args):
         self.bolt_circ_diam = args["bolt_circ_diam"]
         self.num_teeth = args["num_teeth"]
@@ -20,9 +21,10 @@ class HypProfile:
         self.press_ang = args["pressure_angle"]
         self.press_offset = args["pressure_offset"]
         self.file_name = args["file_name"]
+        self.resolution = args["resolution"]
         self.min_angle = self.max_angle = -1
         self.min_radius = self.max_radius = 0
-        self.q = 2 * pi / self.segments
+        self.quadrant_frac = 2 * pi / self.segments
 
     def calc_yp(self, const):
         """ tbd """

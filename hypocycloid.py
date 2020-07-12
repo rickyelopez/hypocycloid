@@ -39,7 +39,7 @@ import sys
 
 from modules.profile import HypProfile  # pylint: disable=import-error
 from modules.args import create_argparse  # pylint: disable=import-error
-from modules.dxf import ( # pylint: disable=import-error
+from modules.dxf import (  # pylint: disable=import-error
     init_dxf,
     create_text,
     create_min_max,
@@ -57,25 +57,34 @@ prof = HypProfile(args)
 # create the dxf document and modelspace
 doc, msp = init_dxf()
 
-# find the minimum and maximum angles
-for i in range(180):
-    x = prof.calc_pressure_angle(float(i) * pi / 180)
-    if (x < prof.press_ang) and (prof.min_angle < 0):
-        prof.min_angle = float(i)
-    if (x < -prof.press_ang) and (prof.max_angle < 0):
-        prof.max_angle = float(i - 1)
+# find the minimum angle
+i = 0
+while True:
+    x = prof.calc_pressure_angle(i * pi / 180)
+    if x < prof.press_ang:
+        prof.min_angle = round(i, 4)
+        break
+    i += prof.resolution
+
+# find the maximum angle
+i = 180
+while True:
+    x = prof.calc_pressure_angle(i * pi / 180)
+    if x > -prof.press_ang:
+        prof.max_angle = round(i, 4)
+        break
+    i -= prof.resolution
 
 # calculate the min and max radii
 prof.calc_radii()
 
 # generate the cam profile - note: shifted in -x by eccentricity amount
-i = 0
 x1 = prof.calc(0, "x")
 y1 = prof.calc(0, "y")
 x1, y1 = prof.check_limit(x1, y1)
 for i in range(1, prof.segments + 1):
-    x2 = prof.calc(prof.q * i, "x")
-    y2 = prof.calc(prof.q * i, "y")
+    x2 = prof.calc(prof.quadrant_frac * i, "x")
+    y2 = prof.calc(prof.quadrant_frac * i, "y")
     x2, y2 = prof.check_limit(x2, y2)
     msp.add_line(
         (x1 - prof.eccentricity, y1),
@@ -92,9 +101,7 @@ for i in range(0, prof.num_teeth + 1):
         * prof.num_teeth
         * func(2 * pi / (prof.num_teeth + 1) * i)
     )
-    msp.add_circle(
-        (p(cos), p(sin)), prof.pin_diam / 2, dxfattribs={"layer": "roller"}
-    )
+    msp.add_circle((p(cos), p(sin)), prof.pin_diam / 2, dxfattribs={"layer": "roller"})
 
 
 ##### Generate and save the DXF file #####
@@ -109,6 +116,6 @@ create_centers(msp, prof)
 
 try:
     doc.saveas(prof.file_name)
-except: #TODO: except something specific here
+except:  # TODO: except something specific here
     print("Problem saving file")
     sys.exit(2)
