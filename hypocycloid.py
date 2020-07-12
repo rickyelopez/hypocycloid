@@ -37,10 +37,15 @@ Notes:
 import math
 import sys
 
-import ezdxf
+from modules.profile import HypProfile  # pylint: disable=import-error
+from modules.args import create_argparse  # pylint: disable=import-error
+from modules.dxf import ( # pylint: disable=import-error
+    init_dxf,
+    create_text,
+    create_min_max,
+    create_centers,
+)
 
-from modules.profile import HypProfile # pylint: disable=import-error
-from modules.args import create_argparse # pylint: disable=import-error
 
 # create the argument parser object populated with all of the arguments we need
 parser = create_argparse()
@@ -49,43 +54,8 @@ args = vars(parser.parse_args(x.lower() for x in sys.argv[1:]))
 # create a profile object with those arguments
 prof = HypProfile(args)
 
-doc = ezdxf.new()
-doc.layers.new("text", dxfattribs={"color": 2})
-doc.layers.new("cam", dxfattribs={"color": 1})
-doc.layers.new("roller", dxfattribs={"color": 5})
-doc.layers.new("pressure", dxfattribs={"color": 3})
-
-msp = doc.modelspace()
-
-x_pos = prof.pitch * prof.num_teeth + prof.pin_diam
-
-msp.add_text(
-    f"pitch={str(prof.pitch)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((x_pos, 0.7))
-
-msp.add_text(
-    f"pin diameter={str(prof.pin_diam)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((x_pos, 0.5))
-
-msp.add_text(
-    f"eccentricity={str(prof.eccentricity)}",
-    dxfattribs={"layer": "text", "height": 0.1},
-).set_pos((x_pos, 0.3))
-
-msp.add_text(
-    f"# of teeth={str(prof.num_teeth)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((x_pos, 0.1))
-
-msp.add_text(
-    f"pressure angle limit={str(prof.press_ang)}",
-    dxfattribs={"layer": "text", "height": 0.1},
-).set_pos((x_pos, -0.1))
-
-msp.add_text(
-    f"pressure angle offset={str(prof.press_offset)}",
-    dxfattribs={"layer": "text", "height": 0.1},
-).set_pos((x_pos, -0.3))
-
+# create the dxf document and modelspace
+doc, msp = init_dxf()
 
 for i in range(180):
     x = prof.calc_pressure_angle(float(i) * math.pi / 180)
@@ -94,22 +64,8 @@ for i in range(180):
     if (x < -prof.press_ang) and (prof.max_angle < 0):
         prof.max_angle = float(i - 1)
 
-msp.add_text(
-    f"min angle={str(prof.min_angle)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((x_pos, -0.5))
-
-msp.add_text(
-    f"max angle={str(prof.max_angle)}", dxfattribs={"layer": "text", "height": 0.1}
-).set_pos((x_pos, -0.7))
-
+# calculate the min and max radii
 prof.calc_radii()
-
-msp.add_circle(
-    (-prof.eccentricity, 0), prof.min_radius, dxfattribs={"layer": "pressure"}
-)
-msp.add_circle(
-    (-prof.eccentricity, 0), prof.max_radius, dxfattribs={"layer": "pressure"}
-)
 
 # generate the cam profile - note: shifted in -x by eccentricity amount
 i = 0
@@ -128,9 +84,6 @@ for i in range(1, prof.segments + 1):
     x1 = x2
     y1 = y2
 
-# add a circle in the center of the cam
-msp.add_circle((-prof.eccentricity, 0), prof.pin_diam / 2, dxfattribs={"layer": "cam"})
-
 # generate the pin locations
 for i in range(0, prof.num_teeth + 1):
     p = (
@@ -141,9 +94,15 @@ for i in range(0, prof.num_teeth + 1):
     msp.add_circle(
         (p(math.cos), p(math.sin)), prof.pin_diam / 2, dxfattribs={"layer": "roller"}
     )
-# add a circle in the center of the pins
-msp.add_circle((0, 0), prof.pin_diam / 2, dxfattribs={"layer": "roller"})
 
+# choose the x position of all the descriptive text
+x_pos = prof.pitch * prof.num_teeth + prof.pin_diam
+# create the descriptive text
+create_text(msp, prof, x_pos)
+# create the min and max circles
+create_min_max(msp, prof)
+# create the center circles
+create_centers(msp, prof)
 
 try:
     doc.saveas(prof.file_name)
