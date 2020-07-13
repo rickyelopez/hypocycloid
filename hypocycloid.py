@@ -137,25 +137,28 @@ for i in range(0, len(mod_locs), 2):
     # calculate the distance from the center of the cam to the center of the arc
     cent_dist = sqrt((center[0] + prof.eccentricity) ** 2 + center[1] ** 2)
     # use the center distance to determine which arcs are valleys
-    if cent_dist > prof.max_radius:
+    if cent_dist > prof.min_radius:
         # reverse the draw order of the valleys
         angs.reverse()
 
     # draw the arc
     msp.add_arc(center, radius, angs[0], angs[1], dxfattribs={"layer": "cam"})
 
-
+# draw the splines
 for i in range(0, len(mod_locs_orig), 2):
+    # find the start and end of the range of points that define the spline
+    # based on the relief region triggers
     p_s = mod_locs_orig[i]
     p_e = mod_locs_orig[i + 1]
 
+    # find the corresponding indices in the points list
     p_s = points.index(p_s) + 1
     p_e = points.index(p_e) - 1
 
+    # make a list for that range of points
     sp_points = points[p_s : p_e + 1]
+    # draw the spline
     msp.add_spline(sp_points, dxfattribs={"layer":"cam"})
-    for j in range(len(sp_points) - 1):
-        msp.add_line(sp_points[j], sp_points[j + 1], dxfattribs={"layer": "test"})
 
 
 # generate the pin locations

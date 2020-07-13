@@ -11,12 +11,20 @@ class HypProfile:
     # pylint: disable=too-many-instance-attributes
     # More than 7 is reasonable in this case.
     def __init__(self, args):
-        self.bolt_circ_diam = args["bolt_circ_diam"]
+        self.bolt_circ_radius = args["bolt_circ_radius"]
         self.num_teeth = args["num_teeth"]
         pitch = args["pitch"]
-        self.pitch = (self.bolt_circ_diam / self.num_teeth) if pitch is None else pitch
+        self.pitch = (
+            (self.bolt_circ_radius / self.num_teeth) if pitch is None else pitch
+        )
         self.pin_diam = args["pin_diam"]
-        self.eccentricity = args["eccentricity"]
+        eccentricity = args["eccentricity"]
+        self.eccentricity = (
+            round(self.pitch / (12 / self.num_teeth), 2)
+            if eccentricity is None
+            else eccentricity
+        )
+        print(self.eccentricity)
         self.segments = args["num_lines"]
         self.press_ang = args["pressure_angle"]
         self.press_offset = args["pressure_offset"]
