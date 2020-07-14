@@ -4,6 +4,8 @@ This is a Python 3 port of the Hypocycloidal Gear Profile generator from http://
 
 Now uses arcs where possible isntead of multiple line segments! See the [Changes](#changes) section for more info.
 
+Now uses splines for the hyperbolic profile instead of multiple line segments! See the [Changes](#changes) section for more info.
+
 GNU GPL v3.0 
 
 
@@ -44,9 +46,11 @@ All of the information above is printed to the console when the `-h/--help` argu
 1. Allow for increased resolution when finding min and max angles (to maintain desired pressure angle)
 2. Now uses actual arcs where possible rather than representing arcs as many line segments
 3. Restructured code to be more Pythonic, hopefully allowing for more improvements down the line
-
-## <a name="goals"> Further Development Goals 
-1. Represent the part of the cam that actually uses the hypocycloidal profile as a spline
+4. Represent the part of the cam that actually uses the hypocycloidal profile as a spline
     * In theory, this will further improve resultant CAD quality, and will make for a more machineable cam
 	* Rather than starting with a badly interpolated CAD, and then being limited in terms of machineability, the limiting factor would be CAD/CAM or Machine performance
+
+## <a name="goals"> Further Development Goals 
+1. Add self-checking, sanity checking, and rules of thumb to follow when using
+	* Right now, once the values get to a point where the profile isn't possible, the script just generates a super messed up dxf. Would be nice if you got a warning instead...
 2. Add a UI (maybe even GUI) so that you don't have to do everything with command line arguments
