@@ -91,7 +91,7 @@ y1 = prof.calc(0, "y")
 # check (and store) if this point needs an offset applied to it
 x1, y1, mod_last = prof.check_limit(x1, y1)
 # keep track of all the points so we can draw arcs
-points = [(x1, y1)]
+points = [(x1 - prof.eccentricity, y1)]
 # keep track of all of the boundary points of the relief region
 mod_locs = []
 
@@ -100,7 +100,8 @@ for i in range(1, prof.segments):
     x2 = prof.calc(prof.quadrant_frac * i, "x")
     y2 = prof.calc(prof.quadrant_frac * i, "y")
     x2, y2, mod = prof.check_limit(x2, y2)
-    if not mod or mod and not mod_last:
+    # if not mod or mod and not mod_last:
+    if (not mod and mod_last) or (mod and not mod_last):
         # only draw the lines if they do not represent part of an arc
         msp.add_line(
             (x1 - prof.eccentricity, y1),
@@ -111,37 +112,54 @@ for i in range(1, prof.segments):
     # check if the point is a boundary point, store it if it is
     if mod and not mod_last:
         mod_last = True
-        mod_locs.append([x2 - prof.eccentricity, y2])
+        mod_locs.append((x2 - prof.eccentricity, y2))
     elif not mod and mod_last:
         mod_last = False
-        mod_locs.append([x1 - prof.eccentricity, y1])
+        mod_locs.append((x1 - prof.eccentricity, y1))
     # store the point
-    points.append([x2 - prof.eccentricity, y2])
+    points.append((x2 - prof.eccentricity, y2))
     # get ready for next calc
     x1 = x2
     y1 = y2
 
 # draw the first arc since the first point is at the center
 center, radius, angs = arc_3_point(mod_locs[-1], points[1], mod_locs[0])
-msp.add_arc(center, radius, angs[0], angs[1], dxfattribs={"layer":"cam"})
+msp.add_arc(center, radius, angs[0], angs[1], dxfattribs={"layer": "cam"})
 # delete the first arc trigger points from the list
+mod_locs_orig = mod_locs.copy()
 mod_locs = mod_locs[1:-1]
-
 # find and draw the rest of the arcs
 for i in range(0, len(mod_locs), 2):
     # find a point somewhere close to the center of the arc
-    p_2 = points[floor((points.index(mod_locs[i]) + points.index(mod_locs[i+1]))/2)]
+    p_2 = points[floor((points.index(mod_locs[i]) + points.index(mod_locs[i + 1])) / 2)]
     # calculate the center, radius, and start/end angles of the arc
-    center, radius, angs = arc_3_point(mod_locs[i], p_2, mod_locs[i+1])
+    center, radius, angs = arc_3_point(mod_locs[i], p_2, mod_locs[i + 1])
     # calculate the distance from the center of the cam to the center of the arc
-    cent_dist = sqrt((center[0] + prof.eccentricity)**2 + center[1]**2)
+    cent_dist = sqrt((center[0] + prof.eccentricity) ** 2 + center[1] ** 2)
     # use the center distance to determine which arcs are valleys
-    if cent_dist > prof.max_radius:
+    if cent_dist > prof.min_radius:
         # reverse the draw order of the valleys
         angs.reverse()
 
     # draw the arc
-    msp.add_arc(center, radius, angs[0], angs[1], dxfattribs={"layer":"cam"})
+    msp.add_arc(center, radius, angs[0], angs[1], dxfattribs={"layer": "cam"})
+
+# draw the splines
+for i in range(0, len(mod_locs_orig), 2):
+    # find the start and end of the range of points that define the spline
+    # based on the relief region triggers
+    p_s = mod_locs_orig[i]
+    p_e = mod_locs_orig[i + 1]
+
+    # find the corresponding indices in the points list
+    p_s = points.index(p_s) + 1
+    p_e = points.index(p_e) - 1
+
+    # make a list for that range of points
+    sp_points = points[p_s : p_e + 1]
+    # draw the spline
+    msp.add_spline(sp_points, dxfattribs={"layer":"cam"})
+
 
 # generate the pin locations
 p = (

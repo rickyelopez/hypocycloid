@@ -24,10 +24,10 @@ def arc_3_point(p_1, p_2, p_3):
 
     def angles(p_1, p_2):
         sign = -1 if p_1[1] < p_2[1] else 1
-        p_1[0] = p_1[0] - p_2[0]
-        p_1[1] = p_1[1] - p_2[1]
-        dot = p_1[0] * 1
-        mag = sqrt(p_1[0]**2 + p_1[1]**2)
+        p_x = p_1[0] - p_2[0]
+        p_y = p_1[1] - p_2[1]
+        dot = p_x * 1
+        mag = sqrt(p_x**2 + p_y**2)
         return sign * acos(dot/mag) * 180 / pi
 
     angs = [angles(p_1, center), angles(p_3, center)]

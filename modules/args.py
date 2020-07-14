@@ -27,10 +27,10 @@ def create_argparse():
     # add the bolt circle diameter argument to the mutually exclusive group
     group_p_b.add_argument(
         "-b",
-        "--bolt_circ_diam",
+        "--bolt_circ_radius",
         type=float,
-        help="the bolt circle diameter of the pins (can be used instead of -p/--pitch)",
-        metavar="bolt circle diameter",
+        help="the bolt circle radius of the pins (can be used instead of -p/--pitch)",
+        metavar="bolt circle radius",
     )
 
     # add the pin diameter argument to the named group
@@ -43,24 +43,23 @@ def create_argparse():
         required=True,
     )
 
-    # add the eccentricity argument to the named group
-    group_req.add_argument(
+    # add the eccentricity argument to the optional group
+    parser.add_argument(
         "-e",
         "--eccentricity",
         type=float,
-        help="center of rotation offset from center of cam",
+        help="center of rotation offset from center of cam (recommended is pitch/(12/num_teeth) \
+            or bolt_circ_radius/12) (default is the recommended ratio)",
         metavar="eccentricity",
-        required=True,
     )
 
-    # add the pressure angle argument to the named group
+    # add the pressure angle argument to the optional group
     parser.add_argument(
         "-a",
         "--pressure_angle",
         type=float,
         help="pressure angle limit",
         metavar="pressure angle",
-        required=True,
         default=50,
     )
 
