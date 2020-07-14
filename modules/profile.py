@@ -24,7 +24,6 @@ class HypProfile:
             if eccentricity is None
             else eccentricity
         )
-        print(self.eccentricity)
         self.segments = args["num_lines"]
         self.press_ang = args["pressure_angle"]
         self.press_offset = args["pressure_offset"]
